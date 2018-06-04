@@ -1,7 +1,9 @@
-import React, {Fragment} from 'react'
-import {Table, Card, Divider, Icon, Button, Form, Modal, message, Input, InputNumber} from 'antd'
-import PageHeaderLayout from '../../../layouts/PageHeaderLayout'
-import {createOrg, searchOrg} from '../../../services/organization'
+import React from 'react'
+import {Table, Card, Divider, Icon, Button, Form, Modal, message, Input, InputNumber, Popconfirm} from 'antd'
+import PageHeaderLayout from '../../layouts/PageHeaderLayout'
+import {createOrg, searchOrg, updateOrg, deleteOrg} from '../../services/organization'
+import pick from 'lodash/pick'
+import {connect} from 'dva'
 
 const FormItem = Form.Item
 
@@ -10,7 +12,7 @@ const formItemLayout = {
   wrapperCol: {span: 15}
 }
 
-const columns = [{
+const columns = (ctx) => [{
   title: '编号',
   dataIndex: 'org_id',
   key: 'org_id',
@@ -24,7 +26,7 @@ const columns = [{
   key: 'org_area',
   width: 150
 }, {
-  title: '机构面积',
+  title: '机构地址',
   dataIndex: 'org_address',
   key: 'org_address',
 }, {
@@ -32,25 +34,40 @@ const columns = [{
   key: 'action',
   render: (text, record) => (
     <span>
-      <Button type={'primary'} ghost><Icon type="edit"/>编辑</Button>
+      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.org_id)}><Icon type="edit"/>编辑</Button>
       <Divider type="vertical"/>
-      <Button type={'primary'} ghost><Icon type="delete"/>删除</Button>
+      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.org_id)} okText="确定" cancelText="取消">
+        <Button type={'primary'} ghost><Icon type="delete"/>删除</Button>
+      </Popconfirm>
     </span>
   ),
 }]
-const CreateForm = Form.create()((props) => {
-  const {modalVisible, form, handleAdd, handleModalVisible} = props
+const fieldNames = ['org_name', 'org_area', 'org_address']
+const CreateForm = Form.create({
+  mapPropsToFields(props) {
+    const {detail} = props
+    let fields = {}
+    if (detail) {
+      fieldNames.forEach(key => fields[key] = Form.createFormField({ value: detail[key] }))
+    } else {
+      fieldNames.forEach(key => fields[key] = Form.createFormField({ value: '' }))
+    }
+    return fields
+  }
+})((props) => {
+  const {modalVisible, form, handleAdd, handleModalVisible, isEdit, editId} = props
   const {getFieldDecorator} = form
+
   const okHandle = () => {
     form.validateFields((err, fieldsValue) => {
-      if (err) return;
-      form.resetFields();
-      handleAdd(fieldsValue);
-    });
-  };
+      if (err) return
+      form.resetFields()
+      handleAdd(fieldsValue, editId)
+    })
+  }
   return (
     <Modal
-      title="新建组织机构"
+      title={isEdit ? '更新组织机构': '新建组织机构'}
       visible={modalVisible}
       onOk={okHandle}
       onCancel={() => handleModalVisible()}
@@ -99,6 +116,9 @@ const CreateForm = Form.create()((props) => {
   );
 })
 
+@connect(({ loading }) => ({
+  loading: loading.global
+}))
 @Form.create()
 class OrganizationList extends React.Component {
   constructor(props) {
@@ -107,7 +127,10 @@ class OrganizationList extends React.Component {
       modalVisible: false,
       selectedRows: [],
       formValues: {},
-      tableData: []
+      tableData: [],
+      isEdit: false,
+      detail: null,
+      editId: null
     }
   }
 
@@ -122,43 +145,77 @@ class OrganizationList extends React.Component {
     })
   }
 
-  handleModalVisible = (flag) => {
+  handleModalVisible = async (flag, id) => {
     this.setState({
       modalVisible: !!flag,
-    });
+    })
+    if (id) {
+      const resp = await searchOrg({org_id: id})
+      if (resp.length > 0) {
+        const values = pick(resp[0], ['org_name', 'org_area', 'org_address'])
+        this.setState({
+          isEdit: true,
+          detail: values,
+          editId: id
+        })
+      }
+    } else {
+      this.setState({
+        isEdit: false,
+        detail: null,
+        editId: null
+      })
+    }
   }
 
-  handleAdd = async (fields) => {
-    const resp = await createOrg(fields)
-    console.log(resp)
+  handleAdd = async (fields, editId) => {
+    if (editId) {
+      fields.org_id = editId
+    }
+    const resp = await (editId? updateOrg : createOrg)(fields)
     if (!resp) {
-      message.error('添加失败')
+      message.error(editId ? '修改失败': '添加失败')
       return
     }
-    message.success('添加成功')
+    message.success(editId ? '修改成功': '添加成功')
     this.fetchData()
     this.setState({
       modalVisible: false,
     });
   }
 
+  handleDel = async (org_id) => {
+    const resp = await deleteOrg({org_id})
+    if (!resp) {
+      message.error('删除失败')
+    } else {
+      message.success('删除成功')
+    }
+    this.fetchData()
+  }
+
   render() {
-    const {selectedRows, modalVisible, loading, tableData} = this.state;
+    const {loading} = this.props
+    const { modalVisible, tableData, isEdit, detail, editId} = this.state;
     const parentMethods = {
       handleAdd: this.handleAdd,
-      handleModalVisible: this.handleModalVisible
+      handleModalVisible: this.handleModalVisible,
+      isEdit,
+      detail,
+      editId
     }
     return (
       <PageHeaderLayout title={'组织结构列表'}>
         <Card bordered={false}>
           <div style={{marginBottom: 16}}>
-            <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>
+            <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true, null)}>
               新建
             </Button>
           </div>
           <Table
+            loading={loading}
             rowKey={record => record.org_id}
-            columns={columns}
+            columns={columns(this)}
             dataSource={tableData}
           />
         </Card>
