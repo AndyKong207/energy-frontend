@@ -43,14 +43,38 @@ function fixedZero(val) {
 //   return activeData
 // }
 
-function getActiveData() {
-  const offlineChartData = [];
-  offlineChartData.push({
+function randomData() {
+  return {
     x: (new Date().getTime()),
     y1: Math.floor(Math.random() * 40) + 80,
-    // y2: Math.floor(Math.random() * 100) + 10,
-  })
+    // y2: Math.floor(Math.random() * 40) + 10
+  }
+}
+
+function getActiveData() {
+  const offlineChartData = [];
+  offlineChartData.push(randomData())
+  // offlineChartData.push({
+  //   x: (new Date().getTime()),
+  //   y1: Math.floor(Math.random() * 40) + 80,
+  //   // y2: Math.floor(Math.random() * 100) + 10,
+  // })
   return offlineChartData
+}
+
+function randomEnvData() {
+  return {
+    x: (new Date().getTime()),
+    y1: Math.floor(Math.random() * 40) + 90,
+    y2: Math.floor(Math.random() * 40) + 10,
+    y3: Math.floor(Math.random() * 40) + 40
+  }
+}
+
+function getActiveEnvData() {
+  const charData = []
+  charData.push(randomEnvData())
+  return charData
 }
 
 const salesData = [];
@@ -88,18 +112,53 @@ rankingListData = rankingListData.sort((a, b) => {
   return a - b
 })
 
+const envMap = {
+  env_temperature: '温度',
+  env_humidity: '湿度',
+  env_co: '一氧化碳浓度',
+  env_ch4: '甲烷浓度',
+  env_lpg: '液化气浓度',
+  env_atmospheric_pressure: '大气压强',
+  env_illumination_intensity: '光照强度'
+}
+
+const envUnit = {
+  env_temperature: '℃',
+  env_humidity: '%RH',
+  env_co: 'ppm',
+  env_ch4: 'ppm',
+  env_lpg: 'LPG',
+  env_atmospheric_pressure: 'pa',
+  env_illumination_intensity: 'Lux'
+}
+
+const envData = {
+  env_temperature: 1,
+  env_humidity: 1,
+  env_co: 1,
+  env_ch4: 1,
+  env_lpg: 1,
+  env_atmospheric_pressure: 1,
+  env_illumination_intensity: 1
+}
+
 class RegionMonitor extends React.Component {
   state = {
     activeData: getActiveData(),
+    environmentData: getActiveEnvData()
   }
 
   componentDidMount() {
+    let {activeData, environmentData} = this.state
     this.timer = setInterval(() => {
+      activeData.push(randomData())
+      environmentData.push(randomEnvData())
       this.setState(prevState => {
         return {
-          activeData: prevState.activeData.concat(getActiveData())
+          activeData: activeData,
+          environmentData: environmentData
         }
-      });
+      })
     }, 1000)
   }
 
@@ -108,7 +167,14 @@ class RegionMonitor extends React.Component {
   }
 
   render() {
-    const {activeData} = this.state
+    const {activeData, environmentData} = this.state
+
+    if (activeData.length > 50) {
+      activeData.shift()
+    }
+    if (environmentData.length > 10) {
+      environmentData.shift()
+    }
 
     return (
       <Fragment>
@@ -182,10 +248,40 @@ class RegionMonitor extends React.Component {
                 height={400}
                 data={activeData}
                 titleMap={{y1: '总能耗'}}
+                shape={'smooth'}
+                type={'area'}
               />
             </Card>
           </Col>
         </Row>
+        <Card title="环境实时监测" style={{marginBottom: 24}} bordered={false}>
+          <Row gutter={24}>
+            <Col md={18}>
+              <TimelineChart
+                height={400}
+                data={environmentData}
+                titleMap={{y1: '温度', y2: '湿度', y3: '一氧化碳'}}
+                shape={'line'}
+                type={'line'}
+              />
+            </Col>
+            <Col md={6}>
+              <div className={styles.salesRank}>
+                <h4 className={styles.rankingTitle}>环境监测数据</h4>
+                <ul className={styles.envList}>
+                  {
+                    Object.keys(envData).map((item, i) => (
+                      <li key={i}>
+                        <span>{envMap[item]}</span>
+                        <span>{envData[item]} {envUnit[item]}</span>
+                      </li>
+                    ))
+                  }
+                </ul>
+              </div>
+            </Col>
+          </Row>
+        </Card>
         <Row>
           <Col>
             <Card title="耗电时段分布" style={{marginBottom: 24}} bordered={false}>

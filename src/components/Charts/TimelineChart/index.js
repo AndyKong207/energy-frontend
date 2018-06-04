@@ -13,11 +13,7 @@ export default class TimelineChart extends React.Component {
       title,
       height = 400,
       padding = [60, 20, 40, 40],
-      titleMap = {
-        y1: 'y1',
-        y2: 'y2',
-        y3: 'y3'
-      },
+      titleMap = {},
       borderWidth = 2,
       data = [
         {
@@ -27,6 +23,8 @@ export default class TimelineChart extends React.Component {
           y3: 0
         },
       ],
+      shape,
+      type
     } = this.props;
 
     data.sort((a, b) => a.x - b.x);
@@ -45,7 +43,7 @@ export default class TimelineChart extends React.Component {
         end: data[data.length - 1].x,
       },
     });
-
+    ds.views = false
     const dv = ds.createView();
     dv
       .source(data)
@@ -59,15 +57,16 @@ export default class TimelineChart extends React.Component {
       .transform({
         type: 'map',
         callback(row) {
-          const newRow = { ...row };
-          newRow[titleMap.y1] = row.y1;
-          newRow[titleMap.y2] = row.y2;
+          const newRow = { ...row }
+          newRow[titleMap.y1] = row.y1
+          newRow[titleMap.y2] = row.y2
+          newRow[titleMap.y3] = row.y3
           return newRow;
         },
       })
       .transform({
         type: 'fold',
-        fields: [titleMap.y1, titleMap.y2], // 展开字段集
+        fields: [titleMap.y1, titleMap.y2, titleMap.y3], // 展开字段集
         key: 'key', // key字段
         value: 'value', // value字段
       });
@@ -117,7 +116,7 @@ export default class TimelineChart extends React.Component {
             <Axis name="x" />
             <Tooltip />
             <Legend name="key" position="top" />
-            <Geom type="area" position="x*value" color="key"/>
+            <Geom type={type} position="x*value" color="key" shape={shape}/>
           </Chart>
           <div style={{ marginRight: -20 }}>
             <SliderGen />
