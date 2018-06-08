@@ -102,6 +102,12 @@ export const getRouterData = (app) => {
     },
     '/asset/device': {
       component: dynamicWrapper(app, [], () => import('../routes/Asset/Device')),
+    },
+    '/setting/device/type': {
+      component: dynamicWrapper(app, [], () => import('../routes/Setting/DeviceType')),
+    },
+    '/setting/energy/type': {
+      component: dynamicWrapper(app, [], () => import('../routes/Setting/EnergyType')),
     }
   }
   // Get name from ./menu.js or just set it in the router data.

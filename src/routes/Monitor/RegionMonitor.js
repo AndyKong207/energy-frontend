@@ -18,6 +18,8 @@ import AreaSearch from '../../components/AreaSearch'
 import PageHeaderLayout from '../../layouts/PageHeaderLayout'
 import numeral from 'numeral';
 import styles from './RegionMonitor.less'
+import {searchEnvironmentNew} from '../../services/environment'
+import omit from 'lodash/omit'
 
 const topColResponsiveProps = {
   xs: 24,
@@ -65,9 +67,13 @@ function getActiveData() {
 function randomEnvData() {
   return {
     x: (new Date().getTime()),
-    y1: Math.floor(Math.random() * 40) + 90,
-    y2: Math.floor(Math.random() * 40) + 10,
-    y3: Math.floor(Math.random() * 40) + 40
+    y1: Math.floor(Math.random() * 10) + 20,
+    y2: Math.floor(Math.random() * 40) + 40,
+    y3: Math.floor(Math.random() * 40) + 400,
+    y4: Math.floor(Math.random() * 40) + 100,
+    y5: Math.floor(Math.random() * 40) + 900,
+    y6: Math.floor(Math.random() * 40) + 110,
+    y7: Math.floor(Math.random() * 40) + 500
   }
 }
 
@@ -86,12 +92,6 @@ const salesData = [];
 // }
 
 let rankingListData = [];
-// for (let i = 0; i < 7; i += 1) {
-//   rankingListData.push({
-//     title: `工专路 ${i} 号店`,
-//     total: 323234,
-//   });
-// }
 
 const areaData = ['图书馆', '教学楼', '一食堂', '二食堂', '三食堂', '学生公寓1', '敬文书院', '电子楼']
 for (const item of areaData) {
@@ -109,7 +109,7 @@ for (const item of salesData) {
 }
 
 rankingListData = rankingListData.sort((a, b) => {
-  return a - b
+  return b.total - a.total
 })
 
 const envMap = {
@@ -125,49 +125,78 @@ const envMap = {
 const envUnit = {
   env_temperature: '℃',
   env_humidity: '%RH',
-  env_co: 'ppm',
-  env_ch4: 'ppm',
-  env_lpg: 'LPG',
-  env_atmospheric_pressure: 'pa',
+  env_co: 'ppb',
+  env_ch4: 'ppb',
+  env_lpg: 'ppb',
+  env_atmospheric_pressure: 'kPa',
   env_illumination_intensity: 'Lux'
 }
 
-const envData = {
-  env_temperature: 1,
-  env_humidity: 1,
-  env_co: 1,
-  env_ch4: 1,
-  env_lpg: 1,
-  env_atmospheric_pressure: 1,
-  env_illumination_intensity: 1
-}
+// const envData = {
+//   env_temperature: 29,
+//   env_humidity: 76,
+//   env_co: 490,
+//   env_ch4: 160,
+//   env_lpg: 950,
+//   env_atmospheric_pressure: 125.927,
+//   env_illumination_intensity: 599
+// }
 
 class RegionMonitor extends React.Component {
   state = {
     activeData: getActiveData(),
-    environmentData: getActiveEnvData()
+    environmentData: getActiveEnvData(),
+    envData: null,
+    envChartDataArr: []
   }
 
   componentDidMount() {
-    let {activeData, environmentData} = this.state
+    let {activeData} = this.state
     this.timer = setInterval(() => {
       activeData.push(randomData())
-      environmentData.push(randomEnvData())
       this.setState(prevState => {
         return {
           activeData: activeData,
-          environmentData: environmentData
         }
       })
+      this.fetchEnvironment()
     }, 1000)
+
   }
 
   componentWillUnmount() {
     clearInterval(this.timer)
   }
 
+  async fetchEnvironment() {
+    const envNew = await searchEnvironmentNew()
+    const {envChartDataArr} = this.state
+    if (envNew && Array.isArray(envNew)) {
+      const data = omit(envNew[0], 'env_device_id', 'env_id')
+      data.env_co = `${Number.parseFloat(data.env_co) * 1000}`
+      data.env_ch4 = `${Number.parseFloat(data.env_ch4) * 1000}`
+      data.env_lpg = `${Number.parseFloat(data.env_lpg) * 1000}`
+      data.env_atmospheric_pressure = `${Number.parseInt(data.env_atmospheric_pressure) / 1000}`
+      // data.env_illumination_intensity = 'Lux'
+      const envChartData = {}
+      let i = 1
+      for (const item in data) {
+        envChartData['y' + i] = data[item]
+        i++
+      }
+      envChartData.x = (new Date().getTime())
+      envChartDataArr.push(envChartData)
+      this.setState(prevState => {
+        return {
+          envData: data,
+          envChartDataArr: envChartDataArr
+        }
+      })
+    }
+  }
+
   render() {
-    const {activeData, environmentData} = this.state
+    const {activeData, environmentData, envData, envChartDataArr} = this.state
 
     if (activeData.length > 50) {
       activeData.shift()
@@ -175,6 +204,7 @@ class RegionMonitor extends React.Component {
     if (environmentData.length > 10) {
       environmentData.shift()
     }
+
 
     return (
       <Fragment>
@@ -257,20 +287,21 @@ class RegionMonitor extends React.Component {
         <Card title="环境实时监测" style={{marginBottom: 24}} bordered={false}>
           <Row gutter={24}>
             <Col md={18}>
-              <TimelineChart
+              {Array.isArray(envChartDataArr) && envChartDataArr.length > 0 && <TimelineChart
                 height={400}
-                data={environmentData}
-                titleMap={{y1: '温度', y2: '湿度', y3: '一氧化碳'}}
+                data={envChartDataArr}
+                titleMap={{y1: '温度', y2: '湿度', y3: '一氧化碳', y4: '甲烷', y5: '液化气', y6: '大气压强', y7: '光照强度'}}
                 shape={'line'}
                 type={'line'}
-              />
+                maxValue={1000}
+              />}
             </Col>
             <Col md={6}>
               <div className={styles.salesRank}>
                 <h4 className={styles.rankingTitle}>环境监测数据</h4>
                 <ul className={styles.envList}>
                   {
-                    Object.keys(envData).map((item, i) => (
+                    envData && Object.keys(envData).map((item, i) => (
                       <li key={i}>
                         <span>{envMap[item]}</span>
                         <span>{envData[item]} {envUnit[item]}</span>
@@ -284,7 +315,7 @@ class RegionMonitor extends React.Component {
         </Card>
         <Row>
           <Col>
-            <Card title="耗电时段分布" style={{marginBottom: 24}} bordered={false}>
+            <Card title="峰谷时段耗电" style={{marginBottom: 24}} bordered={false}>
               <Row style={{padding: '16px 0'}}>
                 <Col span={8}>
                   <ColorfulGauge
@@ -315,7 +346,7 @@ class RegionMonitor extends React.Component {
           <Row>
             <Col xl={16} lg={12} md={12} sm={24} xs={24}>
               <div className={styles.salesBar}>
-                <Bar height={295} title="区域耗能" data={salesData}/>
+                <Bar height={295} title="区域耗能(kWh)" data={salesData}/>
               </div>
             </Col>
             <Col xl={8} lg={12} md={12} sm={24} xs={24}>
@@ -326,7 +357,7 @@ class RegionMonitor extends React.Component {
                     <li key={i}>
                       <span className={i < 3 ? styles.active : ''}>{i + 1}</span>
                       <span>{item.title}</span>
-                      <span>{numeral(item.total).format('0,0')}</span>
+                      <span>{numeral(item.total).format('0,0')}kWh</span>
                     </li>
                   ))}
                 </ul>

@@ -24,9 +24,9 @@ export default class TimelineChart extends React.Component {
         },
       ],
       shape,
-      type
+      type,
+      maxValue = 200
     } = this.props;
-
     data.sort((a, b) => a.x - b.x);
 
     let max;
@@ -61,12 +61,16 @@ export default class TimelineChart extends React.Component {
           newRow[titleMap.y1] = row.y1
           newRow[titleMap.y2] = row.y2
           newRow[titleMap.y3] = row.y3
+          newRow[titleMap.y4] = row.y4
+          newRow[titleMap.y5] = row.y5
+          newRow[titleMap.y6] = row.y6
+          newRow[titleMap.y7] = row.y7
           return newRow;
         },
       })
       .transform({
         type: 'fold',
-        fields: [titleMap.y1, titleMap.y2, titleMap.y3], // 展开字段集
+        fields: [titleMap.y1, titleMap.y2, titleMap.y3, titleMap.y4, titleMap.y5, titleMap.y6, titleMap.y7], // 展开字段集
         key: 'key', // key字段
         value: 'value', // value字段
       });
@@ -84,7 +88,7 @@ export default class TimelineChart extends React.Component {
     const cols = {
       x: timeScale,
       value: {
-        max: 200,
+        max: maxValue,
         min: 0,
       },
     };

@@ -63,14 +63,13 @@ const menuData = [{
 }, {
   name: '系统设置',
   icon: 'setting',
-  path: 'profile',
+  path: 'setting',
   children: [{
-    name: '资源类型管理',
-    path: 'basic',
+    name: '能耗类型管理',
+    path: 'energy/type',
   }, {
-    name: '能耗系统类型管理',
-    path: 'advanced',
-    authority: 'admin',
+    name: '设备类型管理',
+    path: 'device/type',
   }],
 }, {
   name: '账户',

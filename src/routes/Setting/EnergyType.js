@@ -1,13 +1,11 @@
 import React from 'react'
-import {Table, Card, Divider, Icon, Button, Form, Modal, message, Input, InputNumber, Popconfirm, Select} from 'antd'
+import {Table, Card, Divider, Icon, Button, Form, Modal, message, Input, Popconfirm} from 'antd'
 import PageHeaderLayout from '../../layouts/PageHeaderLayout'
-import {createArea, searchArea, updateArea, deleteArea} from '../../services/area'
-import {searchOrg} from '../../services/organization'
+import {createEnergyType, searchEnergyType, updateEnergyType, deleteEnergyType} from '../../services/energyType'
 import pick from 'lodash/pick'
 import {connect} from 'dva'
 
 const FormItem = Form.Item
-const {Option} = Select
 
 const formItemLayout = {
   labelCol: {span: 5},
@@ -16,38 +14,26 @@ const formItemLayout = {
 
 const columns = (ctx) => [{
   title: '编号',
-  dataIndex: 'area_id',
-  key: 'area_id',
+  dataIndex: 'energy_type_id',
+  key: 'energy_type_id',
 }, {
-  title: '区域名称',
-  dataIndex: 'area_name',
-  key: 'area_name',
-}, {
-  title: '区域面积',
-  dataIndex: 'area_size',
-  key: 'area_size',
-}, {
-  title: '区域描述',
-  dataIndex: 'area_description',
-  key: 'area_description',
-}, {
-  title: '所属机构',
-  dataIndex: 'org_name',
-  key: 'org_name',
+  title: '设备类型名称',
+  dataIndex: 'energy_type_name',
+  key: 'energy_type_name',
 }, {
   title: '操作',
   key: 'action',
   render: (text, record) => (
     <span>
-      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.area_id)}><Icon type="edit"/>编辑</Button>
+      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.energy_type_id)}><Icon type="edit"/>编辑</Button>
       <Divider type="vertical"/>
-      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.area_id)} okText="确定" cancelText="取消">
+      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.energy_type_id)} okText="确定" cancelText="取消">
         <Button type={'primary'} ghost><Icon type="delete"/>删除</Button>
       </Popconfirm>
     </span>
   ),
 }]
-const fieldNames = ['area_name', 'area_size', 'area_description', 'org_id']
+const fieldNames = ['energy_type_name']
 const CreateForm = Form.create({
   mapPropsToFields(props) {
     const {detail} = props
@@ -60,7 +46,7 @@ const CreateForm = Form.create({
     return fields
   }
 })((props) => {
-  const {modalVisible, form, handleAdd, handleModalVisible, isEdit, editId, orgList} = props
+  const {modalVisible, form, handleAdd, handleModalVisible, isEdit, editId} = props
   const {getFieldDecorator} = form
 
   const okHandle = () => {
@@ -72,66 +58,25 @@ const CreateForm = Form.create({
   }
   return (
     <Modal
-      title={isEdit ? '更新区域': '新建区域'}
+      title={isEdit ? '更新能耗类型': '新建能耗类型'}
       visible={modalVisible}
       onOk={okHandle}
       onCancel={() => handleModalVisible()}
     >
       <FormItem
         {...formItemLayout}
-        label={'区域名称'}
+        label={'能耗类型名称'}
       >
-        {getFieldDecorator('area_name', {
+        {getFieldDecorator('energy_type_name', {
             rules: [{
-              required: true, message: '请输入区域名称',
+              required: true, message: '请输入能耗类型名称',
             }]
           }
         )(
-          <Input placehoder={'请输入区域名称'}/>
+          <Input placehoder={'请输入能耗类型名称'}/>
         )}
       </FormItem>
-      <FormItem
-        {...formItemLayout}
-        label={'区域面积'}
-      >
-        {getFieldDecorator('area_size', {
-            rules: [{
-              required: true, message: '请输入区域面积',
-            }]
-          }
-        )(
-          <InputNumber min={1}/>
-        )}
-        <span style={{marginLeft: 8}}>㎡</span>
-      </FormItem>
-      <FormItem
-        {...formItemLayout}
-        label={'区域描述'}
-      >
-        {getFieldDecorator('area_description', {
-            rules: [{
-              required: true, message: '请输入区域描述',
-            }]
-          }
-        )(
-          <Input placehoder={'请输入区域描述'}/>
-        )}
-      </FormItem>
-      <FormItem
-        {...formItemLayout}
-        label={'所属机构'}
-      >
-        {getFieldDecorator('org_id', {
-            rules: [{
-              required: true, message: '请输入机构地址',
-            }]
-          }
-        )(
-          <Select style={{width: '100%'}}>
-            {orgList && orgList.map(item => <Option key={item.org_id} value={item.org_id}>{item.org_name}</Option>)}
-          </Select>
-        )}
-      </FormItem>
+
     </Modal>
   );
 })
@@ -140,7 +85,7 @@ const CreateForm = Form.create({
   loading: loading.global
 }))
 @Form.create()
-class AreaList extends React.Component {
+class EnergyTypeList extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
@@ -151,26 +96,15 @@ class AreaList extends React.Component {
       isEdit: false,
       detail: null,
       editId: null,
-      orgList: []
     }
   }
 
   componentDidMount() {
     this.fetchData()
-    this.fetchOrgData()
-  }
-
-  fetchOrgData = async () => {
-    const orgList = await searchOrg()
-    if (orgList && orgList.length > 0) {
-      this.setState({
-        orgList: orgList
-      })
-    }
   }
 
   fetchData = async () => {
-    const resp = await searchArea()
+    const resp = await searchEnergyType()
     if (resp && resp.length > 0) {
       this.setState({
         tableData: resp
@@ -183,7 +117,7 @@ class AreaList extends React.Component {
       modalVisible: !!flag,
     })
     if (id) {
-      const resp = await searchArea({area_id: id})
+      const resp = await searchEnergyType({energy_type_id: id})
       if (resp.length > 0) {
         const values = pick(resp[0], fieldNames)
         this.setState({
@@ -203,9 +137,9 @@ class AreaList extends React.Component {
 
   handleAdd = async (fields, editId) => {
     if (editId) {
-      fields.area_id = editId
+      fields.energy_type_id = editId
     }
-    const resp = await (editId? updateArea : createArea)(fields)
+    const resp = await (editId? updateEnergyType : createEnergyType)(fields)
     if (!resp) {
       message.error(editId ? '修改失败': '添加失败')
       return
@@ -217,8 +151,8 @@ class AreaList extends React.Component {
     });
   }
 
-  handleDel = async (area_id) => {
-    const resp = await deleteArea({area_id})
+  handleDel = async (energy_type_id) => {
+    const resp = await deleteEnergyType({energy_type_id})
     if (!resp) {
       message.error('删除失败')
     } else {
@@ -239,7 +173,7 @@ class AreaList extends React.Component {
       orgList
     }
     return (
-      <PageHeaderLayout title={'区域列表'}>
+      <PageHeaderLayout title={'能耗类型列表'}>
         <Card bordered={false}>
           <div style={{marginBottom: 16}}>
             <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true, null)}>
@@ -262,4 +196,4 @@ class AreaList extends React.Component {
   }
 }
 
-export default AreaList
+export default EnergyTypeList
