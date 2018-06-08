@@ -176,7 +176,8 @@ class RegionMonitor extends React.Component {
       data.env_co = `${Number.parseFloat(data.env_co) * 1000}`
       data.env_ch4 = `${Number.parseFloat(data.env_ch4) * 1000}`
       data.env_lpg = `${Number.parseFloat(data.env_lpg) * 1000}`
-      data.env_atmospheric_pressure = `${Number.parseInt(data.env_atmospheric_pressure) / 1000}`
+      let envAtmosphericValue = Number.parseInt(data.env_atmospheric_pressure) / 1000
+      data.env_atmospheric_pressure = `${envAtmosphericValue.toFixed(0)}`
       // data.env_illumination_intensity = 'Lux'
       const envChartData = {}
       let i = 1
