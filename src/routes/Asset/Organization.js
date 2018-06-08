@@ -82,7 +82,7 @@ const CreateForm = Form.create({
             }]
           }
         )(
-          <Input placehoder={'请输入机构名称'}/>
+          <Input placeholder={'请输入机构名称'}/>
         )}
       </FormItem>
       <FormItem
@@ -109,7 +109,7 @@ const CreateForm = Form.create({
             }]
           }
         )(
-          <Input placehoder={'请输入机构地址'}/>
+          <Input placeholder={'请输入机构地址'}/>
         )}
       </FormItem>
     </Modal>

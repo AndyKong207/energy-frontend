@@ -21,6 +21,7 @@ import styles from './RegionMonitor.less'
 import {searchEnvironmentNew} from '../../services/environment'
 import omit from 'lodash/omit'
 
+
 const topColResponsiveProps = {
   xs: 24,
   sm: 8,
@@ -147,7 +148,8 @@ class RegionMonitor extends React.Component {
     activeData: getActiveData(),
     environmentData: getActiveEnvData(),
     envData: null,
-    envChartDataArr: []
+    envChartDataArr: [],
+
   }
 
   componentDidMount() {
@@ -240,7 +242,7 @@ class RegionMonitor extends React.Component {
               footer={<Field label="能耗指标" value={`8423kWh`}/>}
               contentHeight={46}
             >
-              <div></div>
+              <div />
             </ChartCard>
           </Col>
           <Col {...topColResponsiveProps}>

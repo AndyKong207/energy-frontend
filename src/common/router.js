@@ -88,6 +88,9 @@ export const getRouterData = (app) => {
     '/alarm/list': {
       component: dynamicWrapper(app, [], () => import('../routes/Alarm/List')),
     },
+    '/alarm/form': {
+      component: dynamicWrapper(app, [], () => import('../routes/Alarm/AlarmForm')),
+    },
     '/asset/organization': {
       component: dynamicWrapper(app, [], () => import('../routes/Asset/Organization')),
     },
@@ -108,6 +111,9 @@ export const getRouterData = (app) => {
     },
     '/setting/energy/type': {
       component: dynamicWrapper(app, [], () => import('../routes/Setting/EnergyType')),
+    },
+    '/user/index': {
+      component: dynamicWrapper(app, [], () => import('../routes/User')),
     }
   }
   // Get name from ./menu.js or just set it in the router data.

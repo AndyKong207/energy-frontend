@@ -73,7 +73,7 @@ const CreateForm = Form.create({
             }]
           }
         )(
-          <Input placehoder={'请输入设备类型名称'}/>
+          <Input placeholder={'请输入设备类型名称'}/>
         )}
       </FormItem>
 

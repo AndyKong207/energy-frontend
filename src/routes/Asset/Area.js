@@ -87,7 +87,7 @@ const CreateForm = Form.create({
             }]
           }
         )(
-          <Input placehoder={'请输入区域名称'}/>
+          <Input placeholder={'请输入区域名称'}/>
         )}
       </FormItem>
       <FormItem
@@ -114,7 +114,7 @@ const CreateForm = Form.create({
             }]
           }
         )(
-          <Input placehoder={'请输入区域描述'}/>
+          <Input placeholder={'请输入区域描述'}/>
         )}
       </FormItem>
       <FormItem

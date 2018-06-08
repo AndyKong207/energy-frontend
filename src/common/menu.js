@@ -34,7 +34,7 @@ const menuData = [{
     path: 'list',
   }, {
     name: '添加监测点',
-    path: 'add',
+    path: 'form',
   }]
 }, {
   name: '资产管理',
@@ -57,10 +57,6 @@ const menuData = [{
     path: 'device'
   }],
 }, {
-  name: '报表',
-  icon: 'table',
-  path: 'result',
-}, {
   name: '系统设置',
   icon: 'setting',
   path: 'setting',
@@ -75,10 +71,9 @@ const menuData = [{
   name: '账户',
   icon: 'user',
   path: 'user',
-  authority: 'guest',
   children: [{
     name: '用户列表',
-    path: 'login',
+    path: 'index',
   }],
 }];
 

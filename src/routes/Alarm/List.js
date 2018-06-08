@@ -1,373 +1,97 @@
-import React, { PureComponent, Fragment } from 'react';
-import { connect } from 'dva';
-import moment from 'moment';
-import { Row, Col, Card, Form, Input, Select, Icon, Button, Dropdown, Menu, InputNumber, DatePicker, Modal, message, Badge, Divider } from 'antd';
-import StandardTable from '../../components/StandardTable';
-import PageHeaderLayout from '../../layouts/PageHeaderLayout';
+import React from 'react'
+import {Table, Card, Divider, Icon, Button, Popconfirm, message} from 'antd'
+import PageHeaderLayout from '../../layouts/PageHeaderLayout'
+import {createMonitor, searchMonitor, updateMonitor, deleteMonitor} from '../../services/monitor'
+import {connect} from 'dva'
+import {withRouter} from 'dva/router'
 
-import styles from './List.less';
+const columns = (ctx) => [{
+  title: '编号',
+  dataIndex: 'monitor_id',
+  key: 'monitor_id',
+}, {
+  title: '报警监测点名称',
+  dataIndex: 'monitor_name',
+  key: 'monitor_name',
+}, {
+  title: '报警事件名称',
+  dataIndex: 'monitor_size',
+  key: 'monitor_size',
+}, {
+  title: '报警事件描述',
+  dataIndex: 'monitor_description',
+  key: 'monitor_description',
+}, {
+  title: '操作',
+  key: 'action',
+  render: (text, record) => (
+    <span>
+      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.monitor_id)}><Icon type="edit"/>编辑</Button>
+      <Divider type="vertical"/>
+      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.monitor_id)} okText="确定" cancelText="取消">
+        <Button type={'primary'} ghost><Icon type="delete"/>删除</Button>
+      </Popconfirm>
+    </span>
+  ),
+}]
 
-const FormItem = Form.Item;
-const { Option } = Select;
-const getValue = obj => Object.keys(obj).map(key => obj[key]).join(',');
-const statusMap = ['default', 'processing', 'success', 'error'];
-const status = ['全部', '未解决', '已解决'];
-const columns = [
-  {
-    title: '异常名称',
-    dataIndex: 'no',
-  },
-  {
-    title: '地点',
-    dataIndex: 'description',
-  },
-  {
-    title: '详情',
-    dataIndex: 'callNo',
-    sorter: true,
-    align: 'right',
-    render: val => `${val} 万`,
-    // mark to display a total number
-    needTotal: true,
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    filters: [
-      {
-        text: status[0],
-        value: 0,
-      },
-      {
-        text: status[1],
-        value: 1,
-      },
-      {
-        text: status[2],
-        value: 2,
-      },
-    ],
-    render(val) {
-      return <Badge status={statusMap[val]} text={status[val]} />;
-    },
-  },
-  {
-    title: '报警时间',
-    dataIndex: 'updatedAt',
-    sorter: true,
-    render: val => <span>{moment(val).format('YYYY-MM-DD HH:mm:ss')}</span>,
-  },
-  {
-    title: '操作',
-    render: () => (
-      <Fragment>
-        <a href="">配置</a>
-        <Divider type="vertical" />
-        <a href="">订阅警报</a>
-      </Fragment>
-    ),
-  },
-];
-
-const CreateForm = Form.create()((props) => {
-  const { modalVisible, form, handleAdd, handleModalVisible } = props;
-  const okHandle = () => {
-    form.validateFields((err, fieldsValue) => {
-      if (err) return;
-      form.resetFields();
-      handleAdd(fieldsValue);
-    });
-  };
-  return (
-    <Modal
-      title="新建规则"
-      visible={modalVisible}
-      onOk={okHandle}
-      onCancel={() => handleModalVisible()}
-    >
-      <FormItem
-        labelCol={{ span: 5 }}
-        wrapperCol={{ span: 15 }}
-        label="描述"
-      >
-        {form.getFieldDecorator('desc', {
-          rules: [{ required: true, message: 'Please input some description...' }],
-        })(
-          <Input placeholder="请输入" />
-        )}
-      </FormItem>
-    </Modal>
-  );
-});
-
-@Form.create()
-export default class AlarmList extends PureComponent {
-  state = {
-    modalVisible: false,
-    expandForm: false,
-    selectedRows: [],
-    formValues: {},
-  };
+@connect(({ loading }) => ({
+  loading: loading.global
+}))
+class MonitorList extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+      tableData: [],
+    }
+  }
 
   componentDidMount() {
+    this.fetchData()
   }
 
-  handleStandardTableChange = (pagination, filtersArg, sorter) => {
-    const { dispatch } = this.props;
-    const { formValues } = this.state;
-
-    const filters = Object.keys(filtersArg).reduce((obj, key) => {
-      const newObj = { ...obj };
-      newObj[key] = getValue(filtersArg[key]);
-      return newObj;
-    }, {});
-
-    const params = {
-      currentPage: pagination.current,
-      pageSize: pagination.pageSize,
-      ...formValues,
-      ...filters,
-    };
-    if (sorter.field) {
-      params.sorter = `${sorter.field}_${sorter.order}`;
-    }
-
-    dispatch({
-      type: 'rule/fetch',
-      payload: params,
-    });
-  }
-
-  handleFormReset = () => {
-    const { form, dispatch } = this.props;
-    form.resetFields();
-    this.setState({
-      formValues: {},
-    });
-    dispatch({
-      type: 'rule/fetch',
-      payload: {},
-    });
-  }
-
-  toggleForm = () => {
-    this.setState({
-      expandForm: !this.state.expandForm,
-    });
-  }
-
-  handleMenuClick = (e) => {
-    const { dispatch } = this.props;
-    const { selectedRows } = this.state;
-
-    if (!selectedRows) return;
-
-    switch (e.key) {
-      case 'remove':
-        dispatch({
-          type: 'rule/remove',
-          payload: {
-            no: selectedRows.map(row => row.no).join(','),
-          },
-          callback: () => {
-            this.setState({
-              selectedRows: [],
-            });
-          },
-        });
-        break;
-      default:
-        break;
-    }
-  }
-
-  handleSelectRows = (rows) => {
-    this.setState({
-      selectedRows: rows,
-    });
-  }
-
-  handleSearch = (e) => {
-    e.preventDefault();
-
-    const { dispatch, form } = this.props;
-
-    form.validateFields((err, fieldsValue) => {
-      if (err) return;
-
-      const values = {
-        ...fieldsValue,
-        updatedAt: fieldsValue.updatedAt && fieldsValue.updatedAt.valueOf(),
-      };
-
+  fetchData = async () => {
+    const resp = await searchMonitor()
+    if (resp && resp.length > 0) {
       this.setState({
-        formValues: values,
-      });
-
-      dispatch({
-        type: 'rule/fetch',
-        payload: values,
-      });
-    });
+        tableData: resp
+      })
+    }
   }
 
-  handleModalVisible = (flag) => {
-    this.setState({
-      modalVisible: !!flag,
-    });
-  }
 
-  handleAdd = (fields) => {
-    this.props.dispatch({
-      type: 'rule/add',
-      payload: {
-        description: fields.desc,
-      },
-    });
-
-    message.success('添加成功');
-    this.setState({
-      modalVisible: false,
-    });
-  }
-
-  renderSimpleForm() {
-    const { getFieldDecorator } = this.props.form;
-    return (
-      <Form onSubmit={this.handleSearch} layout="inline">
-        <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-          <Col md={8} sm={24}>
-            <FormItem label="异常关键字">
-              {getFieldDecorator('no')(
-                <Input placeholder="请输入" />
-              )}
-            </FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <FormItem label="区域">
-              {getFieldDecorator('status')(
-                <Select placeholder="请选择" style={{ width: '100%' }}>
-                  <Option value="0">行政楼</Option>
-                  <Option value="1">图书馆</Option>
-                </Select>
-              )}
-            </FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <span className={styles.submitButtons}>
-              <Button type="primary" htmlType="submit">查询</Button>
-              <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>重置</Button>
-              <a style={{ marginLeft: 8 }} onClick={this.toggleForm}>
-                展开 <Icon type="down" />
-              </a>
-            </span>
-          </Col>
-        </Row>
-      </Form>
-    );
-  }
-
-  renderAdvancedForm() {
-    const { getFieldDecorator } = this.props.form;
-    return (
-      <Form onSubmit={this.handleSearch} layout="inline">
-        <Row gutter={{ md: 8, lg: 24, xl: 48 }}>
-          <Col md={8} sm={24}>
-            <FormItem label="异常关键字">
-              {getFieldDecorator('no')(
-                <Input placeholder="请输入" />
-              )}
-            </FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <FormItem label="区域">
-              {getFieldDecorator('status')(
-                <Select placeholder="请选择" style={{ width: '100%' }}>
-                  <Option value="0">图书馆</Option>
-                  <Option value="1">行政楼</Option>
-                </Select>
-              )}
-            </FormItem>
-          </Col>
-          <Col md={8} sm={24}>
-            <FormItem label="报警日期">
-              {getFieldDecorator('date')(
-                <DatePicker style={{ width: '100%' }} placeholder="选择报警日期" />
-              )}
-            </FormItem>
-          </Col>
-        </Row>
-        <div style={{ overflow: 'hidden' }}>
-          <span style={{ float: 'right', marginBottom: 24 }}>
-            <Button type="primary" htmlType="submit">查询</Button>
-            <Button style={{ marginLeft: 8 }} onClick={this.handleFormReset}>重置</Button>
-            <a style={{ marginLeft: 8 }} onClick={this.toggleForm}>
-              收起 <Icon type="up" />
-            </a>
-          </span>
-        </div>
-      </Form>
-    );
-  }
-
-  renderForm() {
-    return this.state.expandForm ? this.renderAdvancedForm() : this.renderSimpleForm();
+  handleDel = async (monitor_id) => {
+    const resp = await deleteMonitor({monitor_id})
+    if (!resp) {
+      message.error('删除失败')
+    } else {
+      message.success('删除成功')
+    }
+    this.fetchData()
   }
 
   render() {
-    const { selectedRows, modalVisible } = this.state;
-
-    const menu = (
-      <Menu onClick={this.handleMenuClick} selectedKeys={[]}>
-        <Menu.Item key="remove">删除</Menu.Item>
-        <Menu.Item key="approval">批量审批</Menu.Item>
-      </Menu>
-    );
-
-    const parentMethods = {
-      handleAdd: this.handleAdd,
-      handleModalVisible: this.handleModalVisible,
-    };
+    const {loading, history} = this.props
+    const {tableData} = this.state;
 
     return (
-      <PageHeaderLayout title='报警记录'>
+      <PageHeaderLayout title={'区域列表'}>
         <Card bordered={false}>
-          <div className={styles.tableList}>
-            <div className={styles.tableListForm}>
-              {this.renderForm()}
-            </div>
-            <div className={styles.tableListOperator}>
-              {/*<Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true)}>*/}
-                {/*新建*/}
-              {/*</Button>*/}
-              {
-                selectedRows.length > 0 && (
-                  <span>
-                    <Button>批量操作</Button>
-                    <Dropdown overlay={menu}>
-                      <Button>
-                        更多操作 <Icon type="down" />
-                      </Button>
-                    </Dropdown>
-                  </span>
-                )
-              }
-            </div>
-            <StandardTable
-              selectedRows={selectedRows}
-              loading={false}
-              data={[]}
-              columns={columns}
-              onSelectRow={this.handleSelectRows}
-              onChange={this.handleStandardTableChange}
-            />
+          <div style={{marginBottom: 16}}>
+            <Button icon="plus" type="primary" onClick={() => history.push('/alarm/form')}>
+              添加监测点
+            </Button>
           </div>
+          <Table
+            loading={loading}
+            rowKey={record => record.monitor_id}
+            columns={columns(this)}
+            dataSource={tableData}
+          />
         </Card>
-        <CreateForm
-          {...parentMethods}
-          modalVisible={modalVisible}
-        />
       </PageHeaderLayout>
-    );
+    )
   }
 }
+
+export default withRouter(MonitorList)

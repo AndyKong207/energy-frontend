@@ -1,8 +1,8 @@
 import React from 'react'
 import {Table, Card, Divider, Icon, Button, Form, Modal, message, Input, InputNumber, Popconfirm, Select} from 'antd'
 import PageHeaderLayout from '../../layouts/PageHeaderLayout'
-import {createRoom, searchRoom, updateRoom, deleteRoom} from '../../services/room'
-import {searchBuilding} from '../../services/building'
+import {createUser, searchUser, updateUser, deleteUser} from '../../services/user'
+import {searchOrg} from '../../services/organization'
 import pick from 'lodash/pick'
 import {connect} from 'dva'
 
@@ -10,48 +10,36 @@ const FormItem = Form.Item
 const {Option} = Select
 
 const formItemLayout = {
-  labelCol: {span: 7},
+  labelCol: {span: 5},
   wrapperCol: {span: 15}
 }
 
 const columns = (ctx) => [{
   title: '编号',
-  dataIndex: 'room_id',
-  key: 'room_id',
+  dataIndex: 'user_id',
+  key: 'user_id',
 }, {
-  title: '房间号',
-  dataIndex: 'room_no',
-  key: 'room_no',
+  title: '用户名',
+  dataIndex: 'user_name',
+  key: 'user_name',
 }, {
-  title: '房间面积',
-  dataIndex: 'room_size',
-  key: 'room_size',
-}, {
-  title: '所在建筑',
-  dataIndex: 'building_name',
-  key: 'building_name',
-}, {
-  title: '所在楼层',
-  dataIndex: 'room_floor',
-  key: 'room_floor',
-}, {
-  title: '环境监测设备',
-  dataIndex: 'env_device_id',
-  key: 'env_device_id',
+  title: '所属机构',
+  dataIndex: 'org_name',
+  key: 'org_name',
 }, {
   title: '操作',
   key: 'action',
   render: (text, record) => (
     <span>
-      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.room_id)}><Icon type="edit"/>编辑</Button>
+      <Button type={'primary'} ghost onClick={() => ctx.handleModalVisible(true, record.user_id)}><Icon type="edit"/>编辑</Button>
       <Divider type="vertical"/>
-      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.room_id)} okText="确定" cancelText="取消">
+      <Popconfirm placement="topRight" title={'确定删除吗？'} onConfirm={() => ctx.handleDel(record.user_id)} okText="确定" cancelText="取消">
         <Button type={'primary'} ghost><Icon type="delete"/>删除</Button>
       </Popconfirm>
     </span>
   ),
 }]
-const fieldNames = ['room_no', 'room_size', 'building_id', 'room_floor','env_device_id']
+const fieldNames = ['user_name', 'user_pwd', 'org_id']
 const CreateForm = Form.create({
   mapPropsToFields(props) {
     const {detail} = props
@@ -64,7 +52,7 @@ const CreateForm = Form.create({
     return fields
   }
 })((props) => {
-  const {modalVisible, form, handleAdd, handleModalVisible, isEdit, editId, buildingList} = props
+  const {modalVisible, form, handleAdd, handleModalVisible, isEdit, editId, orgList} = props
   const {getFieldDecorator} = form
 
   const okHandle = () => {
@@ -76,76 +64,52 @@ const CreateForm = Form.create({
   }
   return (
     <Modal
-      title={isEdit ? '更新房间': '新建房间'}
+      title={isEdit ? '更新用户': '新建用户'}
       visible={modalVisible}
       onOk={okHandle}
       onCancel={() => handleModalVisible()}
     >
       <FormItem
         {...formItemLayout}
-        label={'房间编号'}
+        label={'用户名称'}
       >
-        {getFieldDecorator('room_no', {
+        {getFieldDecorator('user_name', {
             rules: [{
-              required: true, message: '请输入房间编号',
+              required: true, message: '请输入用户名称',
             }]
           }
         )(
-          <Input placeholder={'请输入房间编号'}/>
+          <Input placeholder={'请输入区域名称'}/>
         )}
       </FormItem>
       <FormItem
         {...formItemLayout}
-        label={'房间面积'}
+        label={'用户密码'}
       >
-        {getFieldDecorator('room_size', {
+        {getFieldDecorator('user_pwd', {
             rules: [{
-              required: true, message: '请输入房间面积',
+              required: true, message: '请输入用户密码',
             }]
           }
         )(
-          <InputNumber min={1}/>
+          <Input type={'password'} placeholder={'用户密码'}/>
         )}
-        <span style={{marginLeft: 8}}>㎡</span>
       </FormItem>
       <FormItem
         {...formItemLayout}
-        label={'所属建筑'}
+        label={'所属机构'}
       >
-        {getFieldDecorator('building_id', {
+        {getFieldDecorator('org_id', {
             rules: [{
-              required: true, message: '请输入所属建筑',
+              required: true, message: '请输入机构地址',
             }]
           }
         )(
           <Select style={{width: '100%'}}>
-            {buildingList && buildingList.map(item => <Option key={item.building_id} value={item.building_id}>{item.building_name}</Option>)}
+            {orgList && orgList.map(item => <Option key={item.org_id} value={item.org_id}>{item.org_name}</Option>)}
           </Select>
         )}
       </FormItem>
-      <FormItem
-        {...formItemLayout}
-        label={'所在楼层'}
-      >
-        {getFieldDecorator('room_floor', {
-            rules: [{
-              required: true, message: '请输入所在楼层',
-            }]
-          }
-        )(
-          <InputNumber min={1}/>
-        )}
-      </FormItem>
-      <FormItem
-        {...formItemLayout}
-        label={'环境监测设备编号'}
-      >
-        {getFieldDecorator('env_device_id', {}
-        )(
-          <Input placeholder={'环境设备编号'}/>
-        )}
-      </FormItem>
-
     </Modal>
   );
 })
@@ -154,7 +118,7 @@ const CreateForm = Form.create({
   loading: loading.global
 }))
 @Form.create()
-class RoomList extends React.Component {
+class UserList extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
@@ -165,26 +129,26 @@ class RoomList extends React.Component {
       isEdit: false,
       detail: null,
       editId: null,
-      buildingList: []
+      orgList: []
     }
   }
 
   componentDidMount() {
     this.fetchData()
-    this.fetchBuildingData()
+    this.fetchOrgData()
   }
 
-  fetchBuildingData = async () => {
-    const buildingList = await searchBuilding()
-    if (buildingList && buildingList.length > 0) {
+  fetchOrgData = async () => {
+    const orgList = await searchOrg()
+    if (orgList && orgList.length > 0) {
       this.setState({
-        buildingList: buildingList
+        orgList: orgList
       })
     }
   }
 
   fetchData = async () => {
-    const resp = await searchRoom()
+    const resp = await searchUser()
     if (resp && resp.length > 0) {
       this.setState({
         tableData: resp
@@ -197,7 +161,7 @@ class RoomList extends React.Component {
       modalVisible: !!flag,
     })
     if (id) {
-      const resp = await searchRoom({room_id: id})
+      const resp = await searchUser({user_id: id})
       if (resp.length > 0) {
         const values = pick(resp[0], fieldNames)
         this.setState({
@@ -217,9 +181,9 @@ class RoomList extends React.Component {
 
   handleAdd = async (fields, editId) => {
     if (editId) {
-      fields.room_id = editId
+      fields.user_id = editId
     }
-    const resp = await (editId? updateRoom : createRoom)(fields)
+    const resp = await (editId? updateUser : createUser)(fields)
     if (!resp) {
       message.error(editId ? '修改失败': '添加失败')
       return
@@ -231,8 +195,8 @@ class RoomList extends React.Component {
     });
   }
 
-  handleDel = async (room_id) => {
-    const resp = await deleteRoom({room_id})
+  handleDel = async (user_id) => {
+    const resp = await deleteUser({user_id})
     if (!resp) {
       message.error('删除失败')
     } else {
@@ -243,17 +207,17 @@ class RoomList extends React.Component {
 
   render() {
     const {loading} = this.props
-    const { modalVisible, tableData, isEdit, detail, editId, buildingList} = this.state;
+    const { modalVisible, tableData, isEdit, detail, editId, orgList} = this.state;
     const parentMethods = {
       handleAdd: this.handleAdd,
       handleModalVisible: this.handleModalVisible,
       isEdit,
       detail,
       editId,
-      buildingList
+      orgList
     }
     return (
-      <PageHeaderLayout title={'建筑列表'}>
+      <PageHeaderLayout title={'区域列表'}>
         <Card bordered={false}>
           <div style={{marginBottom: 16}}>
             <Button icon="plus" type="primary" onClick={() => this.handleModalVisible(true, null)}>
@@ -276,4 +240,4 @@ class RoomList extends React.Component {
   }
 }
 
-export default RoomList
+export default UserList
