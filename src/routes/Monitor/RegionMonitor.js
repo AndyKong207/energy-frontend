@@ -125,9 +125,9 @@ const envMap = {
 const envUnit = {
   env_temperature: '℃',
   env_humidity: '%RH',
-  env_co: 'ppb',
-  env_ch4: 'ppb',
-  env_lpg: 'ppb',
+  env_co: 'ppm',
+  env_ch4: 'ppm',
+  env_lpg: 'ppm',
   env_atmospheric_pressure: 'kPa',
   env_illumination_intensity: 'Lux'
 }
@@ -151,12 +151,14 @@ class RegionMonitor extends React.Component {
   }
 
   componentDidMount() {
-    let {activeData} = this.state
+    let {activeData, environmentData} = this.state
     this.timer = setInterval(() => {
       activeData.push(randomData())
+      environmentData.push(randomEnvData())
       this.setState(prevState => {
         return {
           activeData: activeData,
+          environmentData: environmentData
         }
       })
       this.fetchEnvironment()
@@ -173,12 +175,20 @@ class RegionMonitor extends React.Component {
     const {envChartDataArr} = this.state
     if (envNew && Array.isArray(envNew)) {
       const data = omit(envNew[0], 'env_device_id', 'env_id')
-      data.env_co = `${Number.parseFloat(data.env_co) * 1000}`
-      data.env_ch4 = `${Number.parseFloat(data.env_ch4) * 1000}`
-      data.env_lpg = `${Number.parseFloat(data.env_lpg) * 1000}`
-      let envAtmosphericValue = Number.parseInt(data.env_atmospheric_pressure) / 1000
-      data.env_atmospheric_pressure = `${envAtmosphericValue.toFixed(0)}`
-      // data.env_illumination_intensity = 'Lux'
+      // data.env_co = `${Number.parseFloat(data.env_co) * 1000}`
+      // data.env_ch4 = `${Number.parseFloat(data.env_ch4) * 1000}`
+      // data.env_lpg = `${Number.parseFloat(data.env_lpg) * 1000}`
+      // let envAtmosphericValue = Number.parseInt(data.env_atmospheric_pressure) / 1000
+      // data.env_atmospheric_pressure = `${envAtmosphericValue.toFixed(0)}`
+
+      data.env_temperature =Number.parseFloat(data.env_temperature)
+      data.env_humidity = Number.parseFloat(data.env_humidity)
+      data.env_co = Number.parseFloat(data.env_co)
+      data.env_ch4 = Number.parseFloat(data.env_ch4)
+      data.env_lpg = Number.parseFloat(data.env_lpg)
+      // let envAtmosphericValue = Number.parseInt(data.env_atmospheric_pressure) / 1000
+      data.env_atmospheric_pressure = Number.parseInt(data.env_atmospheric_pressure) / 10000
+      data.env_illumination_intensity = Number.parseFloat(data.env_illumination_intensity) / 10
       const envChartData = {}
       let i = 1
       for (const item in data) {
@@ -202,11 +212,15 @@ class RegionMonitor extends React.Component {
     if (activeData.length > 50) {
       activeData.shift()
     }
+    if (envChartDataArr.length > 10) {
+      envChartDataArr.shift()
+    }
+
     if (environmentData.length > 10) {
       environmentData.shift()
     }
-
-
+    console.log('real data', envChartDataArr)
+    console.log('mock data', environmentData)
     return (
       <Fragment>
         <Card bordered={false}>
@@ -294,7 +308,7 @@ class RegionMonitor extends React.Component {
                 titleMap={{y1: '温度', y2: '湿度', y3: '一氧化碳', y4: '甲烷', y5: '液化气', y6: '大气压强', y7: '光照强度'}}
                 shape={'line'}
                 type={'line'}
-                maxValue={1000}
+                maxValue={100}
               />}
             </Col>
             <Col md={6}>
@@ -305,7 +319,9 @@ class RegionMonitor extends React.Component {
                     envData && Object.keys(envData).map((item, i) => (
                       <li key={i}>
                         <span>{envMap[item]}</span>
-                        <span>{envData[item]} {envUnit[item]}</span>
+                        <span>{envData[item]}{
+                          (item === 'env_atmospheric_pressure' || item === 'env_illumination_intensity') &&  <b> * 10</b>
+                        } {envUnit[item]}</span>
                       </li>
                     ))
                   }

@@ -32,7 +32,6 @@ function checkStatus(response) {
 export default async function (url, payload, silent = false) {
 
   const res = await _request(...arguments)
-  console.log('===', res)
   return res
 
   async function _request(url, payload) {
