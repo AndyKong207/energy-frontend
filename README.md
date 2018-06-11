@@ -14,7 +14,7 @@ npm run start 或 yarn start
 npm run build 或 yarn build
 ````
 ## 开发技术
-###框架
+### 框架
 * 前端框架：[React](https://reactjs.org/) 
 * 页面样式框架：[ant-design](https://ant.design/)
 * CSS样式：[less](http://lesscss.org/)
