@@ -301,7 +301,7 @@ class RegionMonitor extends React.Component {
             </Card>
           </Col>
         </Row>
-        <Card title="环境实时监测" style={{marginBottom: 24}} bordered={false}>
+        <Card title="建筑内环境实时监测" style={{marginBottom: 24}} bordered={false}>
           <Row gutter={24}>
             <Col md={18}>
               {Array.isArray(envChartDataArr) && envChartDataArr.length > 0 && <TimelineChart
@@ -315,7 +315,7 @@ class RegionMonitor extends React.Component {
             </Col>
             <Col md={6}>
               <div className={styles.salesRank}>
-                <h4 className={styles.rankingTitle}>环境监测数据</h4>
+                <h4 className={styles.rankingTitle}>建筑内环境环境监测数据</h4>
                 <ul className={styles.envList}>
                   {
                     envData && Object.keys(envData).map((item, i) => (
